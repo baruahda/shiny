@@ -1,0 +1,147 @@
+---
+title: "Shiny ODI"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r}
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(shiny)
+odi = read.csv("odi-batting.csv",header=T) 
+```
+
+Select Data {.sidebar} 
+============================================================================
+select a country whose statisitcs you would like to see
+
+```{r}
+selectInput(inputId='country',label='Select the country', choices=as.character(unique(odi$Country)))
+
+selectInput(inputId='oponent',label='Select opponent', choices=c("All",as.character(unique(odi$Versus))),selected="All")
+```
+
+Summary
+===========================================================================
+
+Row
+-------------------------------------------------------------------------
+
+
+### Total Matches
+
+```{r}
+  renderValueBox({
+  data={
+    if(input$oponent=="All"){
+    data1=filter(odi,odi$Country==input$country)}
+    else{
+    data1=filter(odi,odi$Country==input$country & odi$Versus==input$oponent)
+    }
+    data1
+  }  
+
+   total.matches.df= data%>%group_by(Player)%>%summarize(total_matches=n())
+   total.matches = sum(total.matches.df$total_matches)
+
+   valueBox(total.matches,color=ifelse(total.matches>50,'warning','primary'))
+   
+})
+```
+
+
+### Total Runs
+
+```{r}
+  renderValueBox({
+  data={
+    if(input$oponent=="All"){
+    data1=filter(odi,odi$Country==input$country)}
+    else{
+    data1=filter(odi,odi$Country==input$country & odi$Versus==input$oponent)
+    }
+    data1
+  }  
+
+   total.runs.df= data%>%group_by(Player)%>%summarize(total_runs=sum(Runs,na.rm=T))
+   total.runs = sum(total.runs.df$total_runs)
+
+   valueBox((total.runs),color=ifelse(total.runs>50,'warning','primary'))
+   
+})
+```
+
+
+### average scorerate
+
+```{r}
+
+renderValueBox({
+  data={
+    if(input$oponent=="All"){
+    data1=filter(odi,odi$Country==input$country)}
+    else{
+    data1=filter(odi,odi$Country==input$country & odi$Versus==input$oponent)
+    }
+    data1
+  }
+  
+  
+  avg.score = data %>% group_by(Player) %>% summarise(avg = mean(ScoreRate,na.rm = T))
+  avg.scorerate = round(avg.score$avg,2)
+  
+  valueBox((avg.scorerate),color = ifelse(avg.scorerate>75,"warning","primary"))
+  
+})
+  
+```
+
+
+
+Row
+-----------------------------------------------------------
+
+### Top ten batsmen
+```{r}
+renderPlot({
+  data={
+    if(input$oponent=="All"){
+    data1=filter(odi,odi$Country==input$country)}
+    else{
+    data1=filter(odi,odi$Country==input$country & odi$Versus==input$oponent)
+    }
+    data1
+    }  
+      
+ #data= filter(iris,iris$Species==input$Class)
+runs_data = data%>%group_by(Player)%>%summarize(total_runs=sum(Runs,na.rm=T))%>%arrange(-total_runs)%>%top_n(10)
+  ggplot(runs_data,aes(reorder(Player,-total_runs),total_runs))+geom_bar(stat='identity',color='black',fill='dark green')+theme_bw()
+})
+```
+
+Aggregate
+===========================================================
+
+Row
+-----------------------------------------------------------
+
+```{r}
+library(DT)
+renderDataTable({
+  data={
+    if(input$oponent=="All"){
+    data1=filter(odi,odi$Country==input$country)}
+    else{
+    data1=filter(odi,odi$Country==input$country & odi$Versus==input$oponent)
+    }
+    data1
+    }  
+  d = data %>% group_by(Versus) %>% summarise(No.of.Matches = n_distinct(MatchDate),Total.Runs = sum(Runs),Avg.Score = mean(ScoreRate))
+  datatable(d,options = list(pageLength = 5, lengthMenu = c(5,10,15)))
+})
+```
+
