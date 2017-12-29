@@ -1,0 +1,184 @@
+---
+title: "Crypto-currency Analysis"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(shiny)
+currency = read.csv("currency.csv" , header = T)
+str(currency)
+currency$X = NULL
+currency$Date = as.character(currency$Date)
+currency$Date = as.Date(currency$Date , format = "%Y-%m-%d")
+currency$year = format(currency$Date,format = "%Y")
+req_type = c("Bitcoin","LiteCoin","Ethereum","Ripple","Dash")
+req_data = filter(currency,currency$Type %in% req_type )
+
+##currency$Type = as.character(data$Type)
+```
+
+
+Select Currency {.sidebar}
+============================================================
+Select a currency to know the statistics
+
+```{r}
+selectInput(inputId='currency',label='Select currency', choices=c("All",as.character(unique(req_data$Type))),selected="All")
+```
+
+
+comparison for opening and closing value
+======================================================================
+
+
+Row
+-----------------------------------------------------------------------
+
+### Average opening value 
+
+```{r}
+renderPlot({
+  
+  data = {
+    if (input$currency == "All"){
+      
+      data1 = req_data
+      
+    } else {
+      data1 = filter(req_data , req_data$Type== input$currency)
+      
+    }
+    data1
+    
+  }
+  
+  
+one = data %>% group_by(Type,year) %>% summarise(avg_opening_value = mean(Open)) %>% arrange(-avg_opening_value)
+  
+ggplot(one,aes(x=year,y=avg_opening_value)) + geom_point(aes(col=Type),size=4) +theme_bw()
+
+})
+
+```
+
+### average high value range
+
+```{r}
+renderPlot({
+  
+  data = {
+    if (input$currency == "All"){
+      
+      data1 = req_data
+      
+    } else {
+      data1 = filter(req_data , req_data$Type== input$currency)
+      
+    }
+    data1
+    
+  }
+  
+
+  
+ggplot(data,aes(x=Type,y=mean(High))) + geom_bar(aes(fill=year),width=0.6,stat='identity') +theme_bw() + coord_flip() 
+  
+})
+
+
+```
+
+### average closing range
+
+```{r}
+renderPlot({
+  
+  data = {
+    if (input$currency == "All"){
+      
+      data1 = req_data
+      
+    } else {
+      data1 = filter(req_data , req_data$Type== input$currency)
+      
+    }
+    data1
+    
+  }
+  
+
+  
+ggplot(data,aes(x=Type,y=mean(Close))) + geom_bar(aes(fill=year),width=0.6,stat='identity') +theme_bw() + coord_flip() 
+
+})
+```
+
+cryptocurrency flow parameter comparisons
+=========================================================
+
+Row
+-----------------------------------------------------
+
+### Volume across the years
+
+```{r}
+renderPlot({
+  
+  data = {
+    if (input$currency == "All"){
+      
+      data1 = req_data
+      
+    } else {
+      data1 = filter(req_data , req_data$Type== input$currency)
+      
+    }
+    data1
+    
+  }
+  
+
+  
+ggplot(data,aes(x=Date,y = Volume, colour = Type))  + geom_smooth()  + theme_bw()
+  
+})
+
+
+```
+
+
+Row
+-------------------------------------------------
+
+### Market cap across years
+```{r}
+renderPlot({
+  
+  data = {
+    if (input$currency == "All"){
+      
+      data1 = req_data
+      
+    } else {
+      data1 = filter(req_data , req_data$Type== input$currency)
+      
+    }
+    data1
+    
+  }
+  
+
+  
+ggplot(data,aes(x=Date,y = Market.Cap, colour = Type))  + geom_smooth()  + theme_bw()
+  
+})
+
+```
+
